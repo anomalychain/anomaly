@@ -20,7 +20,7 @@
 #include <rpc/server.h>
 #include <qt/navigationbar.h>
 #include <qt/titlebar.h>
-#include <qt/qtumversionchecker.h>
+#include <qt/anomalyversionchecker.h>
 
 #ifdef ENABLE_WALLET
 #include <qt/walletframe.h>
