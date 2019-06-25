@@ -132,7 +132,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             LOCK(cs_main);
             IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
         }
-        while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
+        while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetHash(), pblock->nBits, true, Params().GetConsensus())) {
             ++pblock->nNonce;
             --nMaxTries;
         }
@@ -249,10 +249,7 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
     }
 #endif
 
-    diff.pushKV("proof-of-work",   GetDifficulty(GetLastBlockIndex(pindexBestHeader, false)));
-    diff.pushKV("proof-of-stake",  GetDifficulty(GetLastBlockIndex(pindexBestHeader, true)));
     diff.pushKV("search-interval", (int)lastCoinStakeSearchInterval);
-    obj.pushKV("difficulty",       diff);
 
     const Consensus::Params& consensusParams = Params().GetConsensus();
     obj.pushKV("blockvalue",    (uint64_t)GetBlockSubsidy(chainActive.Height(), consensusParams));
@@ -310,7 +307,6 @@ static UniValue getstakinginfo(const JSONRPCRequest& request)
     obj.pushKV("currentblocktx", (uint64_t)nLastBlockTx);
     obj.pushKV("pooledtx", (uint64_t)mempool.size());
 
-    obj.pushKV("difficulty", GetDifficulty(GetLastBlockIndex(pindexBestHeader, true)));
     obj.pushKV("search-interval", (int)lastCoinStakeSearchInterval);
 
     obj.pushKV("weight", (uint64_t)nWeight);

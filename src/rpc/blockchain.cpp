@@ -47,18 +47,13 @@
 #include <mutex>
 #include <condition_variable>
 
-/* Calculate the difficulty for a given block index.
+/* Returns the difficulty for a given nBits
  */
-double GetDifficulty(const CBlockIndex* blockindex)
+double GetDifficulty(unsigned int nBits)
 {
-    if (blockindex == nullptr)
-    {
-        return 1.0;
-    }
-
-    int nShift = (blockindex->nBits >> 24) & 0xff;
+    int nShift = (nBits >> 24) & 0xff;
     double dDiff =
-        (double)0x0000ffff / (double)(blockindex->nBits & 0x00ffffff);
+        (double)0x0000ffff / (double)(nBits & 0x00ffffff);
 
     while (nShift < 29)
     {
@@ -99,7 +94,7 @@ double GetPoWMHashPS()
         pindex = pindex->pnext;
     }
 
-    return GetDifficulty(chainActive.Tip()) * 4294.967296 / nTargetSpacingWork;
+    return GetDifficulty(chainActive.Tip()->nBits);
 }
 
 double GetPoSKernelPS()
@@ -117,7 +112,7 @@ double GetPoSKernelPS()
         {
             if (pindexPrevStake)
             {
-                dStakeKernelsTriedAvg += GetDifficulty(pindexPrevStake) * 4294967296.0;
+                dStakeKernelsTriedAvg += GetDifficulty(pindexPrevStake->nBits);
                 nStakesTime += pindexPrevStake->nTime - pindex->nTime;
                 nStakesHandled++;
             }
@@ -155,7 +150,7 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.pushKV("mediantime", (int64_t)blockindex->GetMedianTimePast());
     result.pushKV("nonce", (uint64_t)blockindex->nNonce);
     result.pushKV("bits", strprintf("%08x", blockindex->nBits));
-    result.pushKV("difficulty", GetDifficulty(blockindex));
+    result.pushKV("difficulty", GetDifficulty(blockindex->nBits));
     result.pushKV("chainwork", blockindex->nChainWork.GetHex());
     result.pushKV("nTx", (uint64_t)blockindex->nTx);
     result.pushKV("hashStateRoot", blockindex->hashStateRoot.GetHex()); // qtum
@@ -210,7 +205,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.pushKV("mediantime", (int64_t)blockindex->GetMedianTimePast());
     result.pushKV("nonce", (uint64_t)block.nNonce);
     result.pushKV("bits", strprintf("%08x", block.nBits));
-    result.pushKV("difficulty", GetDifficulty(blockindex));
+    result.pushKV("difficulty", GetDifficulty(block.nBits));
     result.pushKV("chainwork", blockindex->nChainWork.GetHex());
     result.pushKV("nTx", (uint64_t)blockindex->nTx);
 
@@ -468,8 +463,8 @@ static UniValue getdifficulty(const JSONRPCRequest& request)
 
     LOCK(cs_main);
     UniValue obj(UniValue::VOBJ);
-    obj.pushKV("proof-of-work",        GetDifficulty(GetLastBlockIndex(pindexBestHeader, false)));
-    obj.pushKV("proof-of-stake",       GetDifficulty(GetLastBlockIndex(pindexBestHeader, true)));
+    obj.pushKV("proof-of-work",        GetDifficulty(GetLastBlockIndex(pindexBestHeader, false)->nBits));
+    obj.pushKV("proof-of-stake",       GetDifficulty(GetLastBlockIndex(pindexBestHeader, true)->nBits));
     return obj;
 }
 
@@ -2078,13 +2073,19 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
+    CBlockIndex* tip = chainActive.Tip();
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("chain",                 Params().NetworkIDString());
     obj.pushKV("blocks",                (int)chainActive.Height());
     obj.pushKV("headers",               pindexBestHeader ? pindexBestHeader->nHeight : -1);
     obj.pushKV("bestblockhash",         chainActive.Tip()->GetBlockHash().GetHex());
-    obj.pushKV("difficulty",            (double)GetDifficulty(chainActive.Tip()));
-    obj.pushKV("moneysupply",           pindexBestHeader->nMoneySupply / COIN);
+    UniValue diff(UniValue::VOBJ);
+    diff.push_back(Pair("proof-of-work",(double)nround(GetDifficulty(GetNextWorkRequired(tip,consensusParams,false)),8)));
+    diff.push_back(Pair("proof-of-stake",(double)nround(GetDifficulty(GetNextWorkRequired(tip,consensusParams,true)),8)));
+    obj.push_back(Pair("difficulty", diff));
+    obj.pushKV("difficulty", diff);
     obj.pushKV("mediantime",            (int64_t)chainActive.Tip()->GetMedianTimePast());
     obj.pushKV("verificationprogress",  GuessVerificationProgress(Params().TxData(), chainActive.Tip()));
     obj.pushKV("initialblockdownload",  IsInitialBlockDownload());
@@ -2108,8 +2109,6 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
         }
     }
 
-    const Consensus::Params& consensusParams = Params().GetConsensus();
-    CBlockIndex* tip = chainActive.Tip();
     UniValue softforks(UniValue::VARR);
     UniValue bip9_softforks(UniValue::VOBJ);
     softforks.push_back(SoftForkDesc("bip34", 2, tip, consensusParams));

@@ -1,4 +1,4 @@
-#include <qt/qtumversionchecker.h>
+#include <qt/anomalyversionchecker.h>
 #include <clientversion.h>
 
 #include <QNetworkAccessManager>

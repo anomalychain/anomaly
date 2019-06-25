@@ -1184,7 +1184,7 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
 bool CheckHeaderPoW(const CBlockHeader& block, const Consensus::Params& consensusParams)
 {
     // Check for proof of work block header
-    return CheckProofOfWork(block.GetHash(), block.nBits, consensusParams);
+    return CheckProofOfWork(block.GetHash(), block.nBits, false, consensusParams);
 }
 
 bool CheckHeaderPoS(const CBlockHeader& block, const Consensus::Params& consensusParams)
@@ -1220,7 +1220,7 @@ bool CheckIndexProof(const CBlockIndex& block, const Consensus::Params& consensu
         //blocks are loaded out of order, so checking PoS kernels here is not practical
         return true; //CheckKernel(block.pprev, block.nBits, block.nTime, block.prevoutStake);
     }else{
-        return CheckProofOfWork(hashProof, block.nBits, consensusParams, false);
+        return CheckProofOfWork(hashProof, block.nBits, false, consensusParams);
     }
 }
 
@@ -4330,7 +4330,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     // Check proof of work
     const Consensus::Params& consensusParams = params.GetConsensus();
-    if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams,block.IsProofOfStake()))
+    if (block.nBits != GetNextWorkRequired(pindexPrev, consensusParams,block.IsProofOfStake()))
         return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect difficulty value");
 
     // Check against checkpoints
@@ -4371,6 +4371,19 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
     const int nHeight = pindexPrev == nullptr ? 0 : pindexPrev->nHeight + 1;
+
+    if (block.GetHash() == Params().GenesisBlock().GetHash())
+        return true;
+
+    if (!pindexPrev)
+        return state.DoS(100, false, REJECT_INVALID, "bad-pindex-prev", false, strprintf("current block is not genesis but has null previous"));
+
+    if (block.nBits != GetNextWorkRequired(pindexPrev, consensusParams, block.IsProofOfStake()))
+        return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect difficulty: block pow=%d bits=%d calc=%d",
+                block.IsProofOfWork() ? "Y" : "N", block.nBits, GetNextWorkRequired(pindexPrev, consensusParams, block.IsProofOfStake())));
+    else
+        LogPrintf("Block pow=%s bits=%08x found=%08x\n", block.IsProofOfWork() ? "Y" : "N", GetNextWorkRequired(pindexPrev,
+                consensusParams, block.IsProofOfStake()), block.nBits);
 
     // Start enforcing BIP113 (Median Time Past) using versionbits logic.
     int nLockTimeFlags = 0;
@@ -4453,7 +4466,7 @@ bool CChainState::UpdateHashProof(const CBlock& block, CValidationState& state, 
         return state.DoS(50, error("UpdateHashProof() : coinstake timestamp violation nTimeBlock=%d", block.GetBlockTime()));
 
     // Check proof-of-work or proof-of-stake
-    if (block.nBits != GetNextWorkRequired(pindex->pprev, &block, consensusParams,block.IsProofOfStake()))
+    if (block.nBits != GetNextWorkRequired(pindex->pprev, consensusParams,block.IsProofOfStake()))
         return state.DoS(100, error("UpdateHashProof() : incorrect %s", block.IsProofOfWork() ? "proof-of-work" : "proof-of-stake"));
 
     uint256 hashProof;
