@@ -387,6 +387,8 @@ bool CheckHex(const std::string& str);
  */
 int ScheduleBatchPriority(void);
 
+double nround(double value, int to);
+
 namespace util {
 
 //! Simplification of std insertion
