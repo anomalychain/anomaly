@@ -121,8 +121,8 @@ unsigned int PoSWorkRequired(const CBlockIndex* pindexLast, const Consensus::Par
 {
     const CBlockIndex* LastPoSBlock = GetLastBlockIndex(pindexLast, true);
     const arith_uint256 bnPosLimit = UintToArith256(params.posLimit);
-    int64_t nTargetSpacing = Params().GetConsensus().nPowTargetSpacing;
-    int64_t nTargetTimespan = Params().GetConsensus().nPowTargetTimespan;
+    int64_t nTargetSpacing = Params().GetConsensus().nPosTargetSpacing;
+    int64_t nTargetTimespan = Params().GetConsensus().nPosTargetTimespan;
 
     int64_t nActualSpacing = 0;
     if (LastPoSBlock->nHeight != 0)

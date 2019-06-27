@@ -92,6 +92,8 @@ public:
         consensus.posLimit = uint256S("0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // qtum, this is far too high by default!
         consensus.nPowTargetTimespan = 6 * 60;
         consensus.nPowTargetSpacing = 1.5 * 60;
+        consensus.nPosTargetTimespan = consensus.nPowTargetTimespan;
+        consensus.nPosTargetSpacing = consensus.nPowTargetSpacing;
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.fPoSNoRetargeting = false;
@@ -177,11 +179,9 @@ public:
         /* disable fallback fee on mainnet */
         m_fallback_fee_enabled = false;
 
-        consensus.nLastPOWBlock = 5000;
+        consensus.nLastPOWBlock = nTime;      // always have PoW
         consensus.nMPoSRewardRecipients = 10;
-        consensus.nFirstMPoSBlock = consensus.nLastPOWBlock + 
-                                    consensus.nMPoSRewardRecipients + 
-                                    COINBASE_MATURITY;
+        consensus.nFirstMPoSBlock = 50;
     }
 };
 
