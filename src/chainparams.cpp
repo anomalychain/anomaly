@@ -88,10 +88,10 @@ public:
         consensus.BIP34Hash = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
         consensus.BIP65Height = 0;
         consensus.BIP66Height = 0;
-        consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.posLimit = uint256S("0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // qtum, this is far too high by default!
-        consensus.nPowTargetTimespan = 20 * 60;
-        consensus.nPowTargetSpacing = 4 * 60;
+        consensus.nPowTargetTimespan = 6 * 60;
+        consensus.nPowTargetSpacing = 1.5 * 60;
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.fPoSNoRetargeting = false;
@@ -130,16 +130,16 @@ public:
         nPruneAfterHeight = 100000;
 
 	// just for now
-	uint32_t nTime = 1561300000;
+	uint32_t nTime = 1561644000;
 	uint32_t nNonce = 0;
 	while (UintToArith256(genesis.GetHash()) >
 	       UintToArith256(consensus.powLimit))
         {
 		nNonce++;
-		genesis = CreateGenesisBlock(nTime, nNonce, 0x1f00ffff, 1, 0 * COIN);
+		genesis = CreateGenesisBlock(nTime, nNonce, 0x1e0fffff, 1, 0 * COIN);
 		if (nNonce % 128 == 0) printf("\rnonce %08x", nNonce);
 	}
-        genesis = CreateGenesisBlock(nTime, nNonce, 0x1f00ffff, 1, 0 * COIN);
+        genesis = CreateGenesisBlock(nTime, nNonce, 0x1e0fffff, 1, 0 * COIN);
         printf("\n%s\n", genesis.ToString().c_str());
 
         consensus.hashGenesisBlock = genesis.GetHash();
